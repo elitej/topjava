@@ -1,6 +1,7 @@
 package ru.javawebinar.topjava.service;
 
 
+import org.springframework.stereotype.Service;
 import ru.javawebinar.topjava.model.User;
 import ru.javawebinar.topjava.util.exception.NotFoundException;
 
@@ -10,6 +11,7 @@ import java.util.List;
  * User: gkislin
  * Date: 22.08.2014
  */
+@Service
 public interface UserService {
 
     User save(User user);
