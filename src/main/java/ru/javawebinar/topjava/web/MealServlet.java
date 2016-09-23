@@ -2,13 +2,11 @@ package ru.javawebinar.topjava.web;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import ru.javawebinar.topjava.model.Meal;
-import ru.javawebinar.topjava.repository.InMemoryMealRepositoryImpl;
-import ru.javawebinar.topjava.repository.MealRepository;
-import ru.javawebinar.topjava.util.MealsUtil;
-
+import ru.javawebinar.topjava.util.exception.NotFoundException;
+import ru.javawebinar.topjava.web.meal.MealRestController;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -18,58 +16,83 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-/**
- * User: gkislin
- * Date: 19.08.2014
- */
-@Controller
+
 public class MealServlet extends HttpServlet {
     private static final Logger LOG = LoggerFactory.getLogger(MealServlet.class);
 
-    @Autowired
-    private MealRepository repository;
+
+    private MealRestController restController;
+
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        repository = new InMemoryMealRepositoryImpl();
+        try (ConfigurableApplicationContext appCtx = new ClassPathXmlApplicationContext("spring/spring-app.xml")) {
+            restController = appCtx.getBean(MealRestController.class);
+        }
+
     }
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         String id = request.getParameter("id");
+        String action = request.getParameter("action");
+        try {
+        if (action != null)
+        {
+            Meal meal = new Meal(id.isEmpty() ? null : Integer.valueOf(id),
+                    LocalDateTime.parse(request.getParameter("dateTime")),
+                    request.getParameter("description"),
+                    Integer.valueOf(request.getParameter("calories")));
+            LOG.info(meal.isNew() ? "Create {}" : "Update {}", meal);
+            restController.save(meal);
+            response.sendRedirect("meals");
+        }
+        else
+        {
+            String dateFrom = request.getParameter("dateFrom");
+            String dateTo = request.getParameter("dateTo");
+            String timeFrom = request.getParameter("timeFrom");
+            String timeTo = request.getParameter("timeTo");
+            request.setAttribute("mealList", restController.getBetween(dateFrom, dateTo, timeFrom, timeTo));
+            request.getRequestDispatcher("mealList.jsp").forward(request, response);
+        }
+        }catch (NotFoundException e)
+        {
+            request.setAttribute("errorMsg", e.getMessage());
+            request.getRequestDispatcher("error.jsp").forward(request, response);
 
-        Meal meal = new Meal(id.isEmpty() ? null : Integer.valueOf(id),
-                LocalDateTime.parse(request.getParameter("dateTime")),
-                request.getParameter("description"),
-                Integer.valueOf(request.getParameter("calories")));
+        }
 
-        LOG.info(meal.isNew() ? "Create {}" : "Update {}", meal);
-        repository.save(meal);
-        response.sendRedirect("meals");
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
 
-        if (action == null) {
-            LOG.info("getAll");
-            request.setAttribute("mealList",
-                    MealsUtil.getWithExceeded(repository.getAll(), MealsUtil.DEFAULT_CALORIES_PER_DAY));
-            request.getRequestDispatcher("/mealList.jsp").forward(request, response);
+        try {
+            if (action == null) {
+                LOG.info("getAll");
+                request.setAttribute("mealList",restController.getAll());
+                request.getRequestDispatcher("/mealList.jsp").forward(request   , response);
 
-        } else if ("delete".equals(action)) {
-            int id = getId(request);
-            LOG.info("Delete {}", id);
-            repository.delete(id);
-            response.sendRedirect("meals");
+            } else if ("delete".equals(action)) {
+                int id = getId(request);
+                LOG.info("Delete {}", id);
+                restController.delete(id);
+                response.sendRedirect("meals");
 
-        } else if ("create".equals(action) || "update".equals(action)) {
-            final Meal meal = action.equals("create") ?
-                    new Meal(LocalDateTime.now().withNano(0).withSecond(0), "", 1000) :
-                    repository.get(getId(request));
-            request.setAttribute("meal", meal);
-            request.getRequestDispatcher("mealEdit.jsp").forward(request, response);
+            } else if ("create".equals(action) || "update".equals(action)) {
+                final Meal meal = action.equals("create") ?
+                        new Meal(LocalDateTime.now().withNano(0).withSecond(0), "", 1000) :
+                        restController.get(getId(request));
+                request.setAttribute("meal", meal);
+                request.getRequestDispatcher("mealEdit.jsp").forward(request, response);
+            }
+        }catch (NotFoundException e)
+        {
+            request.setAttribute("errorMsg", e.getMessage());
+            request.getRequestDispatcher("error.jsp").forward(request, response);
+
         }
     }
 
@@ -77,4 +100,6 @@ public class MealServlet extends HttpServlet {
         String paramId = Objects.requireNonNull(request.getParameter("id"));
         return Integer.valueOf(paramId);
     }
+
+
 }

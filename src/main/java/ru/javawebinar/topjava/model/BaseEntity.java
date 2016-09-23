@@ -1,9 +1,6 @@
 package ru.javawebinar.topjava.model;
 
-/**
- * User: gkislin
- * Date: 22.08.2014
- */
+
 public class BaseEntity {
     protected Integer id;
 

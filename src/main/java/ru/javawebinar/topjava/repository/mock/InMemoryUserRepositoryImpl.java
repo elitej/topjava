@@ -9,11 +9,7 @@ import ru.javawebinar.topjava.repository.UserRepository;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * GKislin
- * 15.06.2015.
- */
-@Repository
+
 public class InMemoryUserRepositoryImpl implements UserRepository {
     private static final Logger LOG = LoggerFactory.getLogger(InMemoryUserRepositoryImpl.class);
 
