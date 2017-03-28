@@ -33,3 +33,5 @@ CREATE TABLE meals
   calories    INTEGER NOT NULL CHECK (calories > 0),
   user_id     INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE
 );
+
+CREATE INDEX CONCURRENTLY idx ON meals(dateTime, description, calories);
