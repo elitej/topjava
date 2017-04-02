@@ -11,7 +11,6 @@ import javax.annotation.PreDestroy;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -27,11 +26,10 @@ public class InMemoryUserRepositoryImpl implements UserRepository {
     private Map<Integer, User> repository = new ConcurrentHashMap<>();
     private AtomicInteger counter = new AtomicInteger(0);
 
-    private static final Comparator<User> USER_COMPARATOR = Comparator.comparing(User::getName);
+    private static final Comparator<User> USER_COMPARATOR = Comparator.comparing(User::getName).thenComparing(User::getEmail);
 
     @Override
     public User save(User user) {
-        Objects.requireNonNull(user);
         if (user.isNew()) {
             user.setId(counter.incrementAndGet());
         }
@@ -68,7 +66,6 @@ public class InMemoryUserRepositoryImpl implements UserRepository {
 
     @Override
     public User getByEmail(String email) {
-        Objects.requireNonNull(email);
         return repository.values().stream()
                 .filter(u -> email.equals(u.getEmail()))
                 .findFirst()

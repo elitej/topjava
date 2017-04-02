@@ -35,7 +35,7 @@ public class JdbcUserRepositoryImpl implements UserRepository {
     @Autowired
     public JdbcUserRepositoryImpl(DataSource dataSource) {
         this.insertUser = new SimpleJdbcInsert(dataSource)
-                .withTableName("USERS")
+                .withTableName("users")
                 .usingGeneratedKeyColumns("id");
     }
 
@@ -74,7 +74,9 @@ public class JdbcUserRepositoryImpl implements UserRepository {
 
     @Override
     public User getByEmail(String email) {
-        return jdbcTemplate.queryForObject("SELECT * FROM users WHERE email=?", ROW_MAPPER, email);
+//        return jdbcTemplate.queryForObject("SELECT * FROM users WHERE email=?", ROW_MAPPER, email);
+        List<User> users = jdbcTemplate.query("SELECT * FROM users WHERE email=?", ROW_MAPPER, email);
+        return DataAccessUtils.singleResult(users);
     }
 
     @Override

@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import ru.javawebinar.topjava.model.Meal;
-import ru.javawebinar.topjava.util.TimeUtil;
+import ru.javawebinar.topjava.util.DateTimeUtil;
 import ru.javawebinar.topjava.web.meal.MealRestController;
 
 import javax.servlet.ServletConfig;
@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 /**
@@ -42,6 +43,7 @@ public class MealServlet extends HttpServlet {
         super.destroy();
     }
 
+    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         String action = request.getParameter("action");
@@ -61,28 +63,23 @@ public class MealServlet extends HttpServlet {
             response.sendRedirect("meals");
 
         } else if ("filter".equals(action)) {
-            LocalDate startDate = TimeUtil.parseLocalDate(resetParam("startDate", request));
-            LocalDate endDate = TimeUtil.parseLocalDate(resetParam("endDate", request));
-            LocalTime startTime = TimeUtil.parseLocalTime(resetParam("startTime", request));
-            LocalTime endTime = TimeUtil.parseLocalTime(resetParam("endTime", request));
-            request.setAttribute("mealList", mealController.getBetween(startDate, startTime, endDate, endTime));
-            request.getRequestDispatcher("/mealList.jsp").forward(request, response);
+            LocalDate startDate = DateTimeUtil.parseLocalDate(request.getParameter("startDate"));
+            LocalDate endDate = DateTimeUtil.parseLocalDate(request.getParameter("endDate"));
+            LocalTime startTime = DateTimeUtil.parseLocalTime(request.getParameter("startTime"));
+            LocalTime endTime = DateTimeUtil.parseLocalTime(request.getParameter("endTime"));
+            request.setAttribute("meals", mealController.getBetween(startDate, startTime, endDate, endTime));
+            request.getRequestDispatcher("/meals.jsp").forward(request, response);
         }
     }
 
-    private String resetParam(String param, HttpServletRequest request) {
-        String value = request.getParameter(param);
-        request.setAttribute(param, value);
-        return value;
-    }
-
+    @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
 
         if (action == null) {
             LOG.info("getAll");
-            request.setAttribute("mealList", mealController.getAll());
-            request.getRequestDispatcher("/mealList.jsp").forward(request, response);
+            request.setAttribute("meals", mealController.getAll());
+            request.getRequestDispatcher("/meals.jsp").forward(request, response);
 
         } else if ("delete".equals(action)) {
             int id = getId(request);
@@ -91,11 +88,11 @@ public class MealServlet extends HttpServlet {
             response.sendRedirect("meals");
 
         } else if ("create".equals(action) || "update".equals(action)) {
-            final Meal meal = action.equals("create") ?
-                    new Meal(LocalDateTime.now().withNano(0).withSecond(0), "", 1000) :
+            final Meal meal = "create".equals(action) ?
+                    new Meal(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), "", 1000) :
                     mealController.get(getId(request));
             request.setAttribute("meal", meal);
-            request.getRequestDispatcher("mealEdit.jsp").forward(request, response);
+            request.getRequestDispatcher("/meal.jsp").forward(request, response);
         }
     }
 
