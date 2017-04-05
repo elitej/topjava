@@ -1,20 +1,28 @@
 package ru.javawebinar.topjava.model;
 
-import javax.persistence.FetchType;
-import javax.persistence.ManyToOne;
+import javax.persistence.*;
+import javax.validation.constraints.Digits;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-/**
- * GKislin
- * 11.01.2015.
- */
+@NamedQuery(name = "getAllMealForUser", query = "select m from Meal m " +
+        "where m.user.id =?1 " +
+        "order by m.dateTime desc ")
+@Entity
+@Table(name = "meals")
 public class Meal extends BaseEntity {
+
+    @Column(name = "date_time")
     private LocalDateTime dateTime;
 
+    @Column(name = "description")
+    @NotNull
     private String description;
 
+    @Column(name = "calories")
+    @Digits(fraction = 0, integer = 4)
     private int calories;
 
     @ManyToOne(fetch = FetchType.LAZY)
